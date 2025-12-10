@@ -28,17 +28,12 @@ from functions.ffmpeg import generate_screen_shots, VideoThumb, VideoMetaData, V
 from functions.utils import remove_urls, remove_emoji
 
 import logging
-import os
-import subprocess
-
-# logging ayarlarını import'tan hemen sonra bir defa yap ve program boyunca tekrar çağırma
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
-    handlers=[logging.FileHandler('log.txt'), logging.StreamHandler()],
-    level=logging.DEBUG
-)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    handlers=[logging.FileHandler('log.txt'), logging.StreamHandler()],
+                    level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
 
+ 
 progress_pattern = re.compile(
     r'(frame|fps|size|time|bitrate|speed|Duration)\s*\=\s*(\S+)'
 )
@@ -46,9 +41,6 @@ progress_pattern = re.compile(
 async def read_stdera(start, process, bot, message_id, chat_id):
     async for line in readlines(process.stderr):
             line = line.decode('utf-8')
-            line_stripped = line.strip()
-            if "%" in line_stripped or "Download complete" in line_stripped or "OK" in line_stripped:
-                        LOGGER.info(f"aria2c: {line_stripped}")
             progress = parse_progress(line)
             if progress:
                 #Progress bar logic
@@ -88,21 +80,6 @@ async def readlines(stream):
             yield line
 
         data.extend(await stream.read(1024 * 1024))
-
-# Güvenli silme yardımcı fonksiyonu:
-# Sadece kullanıcının oluşturduğu alt klasörü (tmp_directory_for_each_user) siler.
-# Kesinlikle kullanıcı ana klasörünü (DOWNLOAD_LOCATION/<user_id>) veya üst klasörleri silmez.
-def safe_rmtree_subdir(subdir, user_id):
-    try:
-        abs_subdir = os.path.abspath(subdir)
-        user_dir = os.path.abspath(os.path.join(DOWNLOAD_LOCATION, str(user_id)))
-        # subdir mutlaka user_dir altında olmalı ve user_dir ile aynı olmamalı
-        if abs_subdir.startswith(user_dir + os.sep) and abs_subdir != user_dir:
-            shutil.rmtree(abs_subdir)
-        else:
-            LOGGER.debug(f"Refused to rmtree unsafe path: {abs_subdir}")
-    except Exception as e:
-        LOGGER.debug(f"safe_rmtree_subdir error: {e}")
 
 async def yt_dlp_call_back(bot, update):
     cb_data = update.data
@@ -239,7 +216,6 @@ async def yt_dlp_call_back(bot, update):
             yt_dlp_url,
             "-o", download_directory
         ]
-        #subprocess.run(command_to_exec)
     else:
         try:
             for for_mat in response_json["formats"]:
@@ -252,35 +228,34 @@ async def yt_dlp_call_back(bot, update):
 
             command_to_exec = [
                 "yt-dlp",
-		"-v",
-		"--newline", 
                 "-c",
                 "--max-filesize", str(TG_MAX_FILE_SIZE),
                 "--embed-subs",
+                "-N", "16", 
                 "-f", yt_dlp_format,
                 "--hls-prefer-ffmpeg",
-		"-N", "16", 
-                "-o", download_directory,
-                yt_dlp_url
+                "--merge-output-format", "mp4",
+                "--no-check-certificate",
+                yt_dlp_url,
+                "-o", download_directory
             ]
+           # subprocess.run(command_to_exec)
         except KeyError:
             command_to_exec = [
                 "yt-dlp",
-                "-v",
                 "-c",
                 "--max-filesize", str(TG_MAX_FILE_SIZE),
                 yt_dlp_url, "-o", download_directory
             ]
-        command_to_exec.append("--merge-output-format")
-        command_to_exec.append("mp4")
 
     if await db.get_aria2(user_id) is True:
         command_to_exec.append("--external-downloader")
         command_to_exec.append("aria2c")
         command_to_exec.append("--external-downloader-args")
-        command_to_exec.append("-x 16 -s 16 -k 1M")
+        command_to_exec.append("-x 16 -s 16")
         command_to_exec.append("--merge-output-format")
         command_to_exec.append("mp4")
+
     #
     command_to_exec.append("--no-warnings")
     # command_to_exec.append("--quiet")
@@ -322,25 +297,27 @@ async def yt_dlp_call_back(bot, update):
     if "rapidrame" in yt_dlp_url:
         command_to_exec.append("--referer")
         command_to_exec.append("https://www.hdfilmcehennemi.fun/")
-    if "dramaizle1.xyz" in yt_dlp_url:
-        command_to_exec.append("--add-header")
-        command_to_exec.append("Accept: */*")
-    if ("hdmomplayer" in yt_dlp_url or
-    "cehennemstream" in yt_dlp_url or
-    "betaplayer" in yt_dlp_url):
-        command_to_exec.append("--add-header")
-        command_to_exec.append("Accept: */*")
-    if "master" in yt_dlp_url:
-        command_to_exec.append("--referer")
-        command_to_exec.append("https://hdfilmcehennemi.mobi/")
-        command_to_exec.append("--referer")
-        command_to_exec.append("https://closeload.filmmakinesi.tv/")
+    if "setplay" in yt_dlp_url:         
+        command_to_exec.append("--referer")       
+        command_to_exec.append("https://setplay.shop/player/index.php?data=4558dbb6f6f8bb2e16d03b85bde76e2c")
     if "rectv2024live" in yt_dlp_url:
         command_to_exec.append("--referer")
         command_to_exec.append("https://twitter.com/")
     if "rectv2024live" in yt_dlp_url:
         command_to_exec.append("--user-agent")
         command_to_exec.append("googleusercontent")
+    if ("hdmomplayer" in yt_dlp_url or
+        "cehennemstream" in yt_dlp_url or
+        "betaplayer" in yt_dlp_url or
+        "setplay.shop" in yt_dlp_url or
+        "cizgipass5" in yt_dlp_url):
+        command_to_exec.append("--add-header")
+        command_to_exec.append("Accept: */*")
+    if "master" in yt_dlp_url:
+        command_to_exec.append("--referer")
+        command_to_exec.append("https://hdfilmcehennemi.mobi/")
+        command_to_exec.append("--referer")
+        command_to_exec.append("https://closeload.filmmakinesi.to/")
     if yt_dlp_username is not None:
         command_to_exec.append("--username")
         command_to_exec.append(yt_dlp_username)
@@ -352,6 +329,40 @@ async def yt_dlp_call_back(bot, update):
             if f"{ref}" in yt_dlp_url:
                 command_to_exec.append("--referer")
                 command_to_exec.append("https://vidmoly.to/")
+            if "setplay" in yt_dlp_url:
+                # önceki ayarları sıfırla
+                command_to_exec = []
+            
+                # sadece setplay için özel ayarlar
+                command_to_exec = [
+                    "yt-dlp",
+                    "-c",
+                    "--max-filesize", str(TG_MAX_FILE_SIZE),
+                    "--embed-subs",
+                    "-N", "16",
+                    "-f", yt_dlp_format,
+                    "--hls-prefer-ffmpeg",
+                    "--merge-output-format", "mp4",
+                    "--referer", "https://setplay.shop/player/index.php?data=4558dbb6f6f8bb2e16d03b85bde76e2c",
+                    "--add-header", "Accept: */*",
+                    yt_dlp_url,
+                    "-o", download_directory
+                ]
+#                except KeyError:
+ #                   command_to_exec = [
+  #                      "yt-dlp",
+   #                     "-c",
+    #                    "--max-filesize", str(TG_MAX_FILE_SIZE),
+     #                   yt_dlp_url, "-o", download_directory
+      #              ]
+                
+            if await db.get_aria2(user_id) is True:
+                command_to_exec.append("--external-downloader")
+                command_to_exec.append("aria2c")
+                command_to_exec.append("--external-downloader-args")
+                command_to_exec.append("-x 16 -s 16")
+                command_to_exec.append("--merge-output-format")
+                command_to_exec.append("mp4")
     LOGGER.info(command_to_exec)
     start = datetime.now()
     start1 = time.time() 
@@ -407,16 +418,19 @@ async def yt_dlp_call_back(bot, update):
         if os.path.isdir(tmp_directory_for_each_user):
             directory_contents = os.listdir(tmp_directory_for_each_user)
             directory_contents.sort()
-        else:
-            # Eğer tmp klasörü yoksa, güvenli silme yapmaya çalışmayacağız.
-            # Thumbnail'leri bilerek silmek istemediğiniz için os.remove(thumb_image_path) çağrıları kaldırıldı.
-            directory_contents = []
+       # else:
+           # try:
+       #         shutil.rmtree(tmp_directory_for_each_user)  # delete folder for user
+#                os.remove(thumb_image_path)
+            #except:
+              #  pass
 
         for single_file in directory_contents:
             print(single_file)
             path = os.path.join(tmp_directory_for_each_user, single_file)
+
             file_size = os.stat(path).st_size
-            
+
             try:
                 if tg_send_type == 'video' and 'webm' in path:
                     download_directory = path.rsplit('.', 1)[0] + '.mkv'
@@ -598,16 +612,8 @@ async def yt_dlp_call_back(bot, update):
 
                 end_two = datetime.now()
                 try:
-                    # sadece indirilen dosyayı sil
-                    try:
-                        os.remove(download_directory)
-                    except Exception:
-                        pass
-                    # thumbnail'leri bilerek silmiyoruz (isteğiniz üzerine)
-                    # try:
-                    #     os.remove(thumb_image_path)
-                    # except:
-                    #     pass
+                    os.remove(download_directory)
+                   # os.remove(thumb_image_path)
                 except:
                     pass
                 time_taken_for_upload = (end_two - end_one).seconds
@@ -622,8 +628,6 @@ async def yt_dlp_call_back(bot, update):
                     )
                 except MessageNotModified:
                     pass
-                # tmp klasörünü güvenli şekilde temizle (sadece alt klasörü)
-                safe_rmtree_subdir(tmp_directory_for_each_user, user_id)
                 return
             else:
                 is_w_f = False
@@ -747,16 +751,8 @@ async def yt_dlp_call_back(bot, update):
                     pass
                 end_two = datetime.now()
                 try:
-                    # sadece indirilen dosyayı sil
-                    try:
-                        os.remove(download_directory)
-                    except Exception:
-                        pass
-                    # thumbnail'leri bilerek silmiyoruz (isteğiniz üzerine)
-                    # try:
-                    #     os.remove(thumb_image_path)
-                    # except:
-                    #     pass
+                    os.remove(download_directory)
+                    #os.remove(thumb_image_path)
                 except:
                     pass
                 time_taken_for_upload = (end_two - end_one).seconds
@@ -771,8 +767,6 @@ async def yt_dlp_call_back(bot, update):
                     )
                 except MessageNotModified:
                     pass
-                # tmp klasörünü güvenli şekilde temizle (sadece alt klasörü)
-                safe_rmtree_subdir(tmp_directory_for_each_user, user_id)
                 return
 
                 end_two = datetime.now()
@@ -814,23 +808,11 @@ async def yt_dlp_call_back(bot, update):
 #        os.remove(thumb_image_path)
 #    except:
 #        pass
+   # try:
+   #     shutil.rmtree(tmp_directory_for_each_user)
+   # except:
+    #    pass
     try:
-        # Güvenli şekilde sadece tmp alt klasörünü sil (id klasörünü koru)
-        safe_rmtree_subdir(tmp_directory_for_each_user, user_id)
-    except:
-        pass
-    try:
-        # path değişkeni döngüden geliyorsa, onu da sadece tmp alt klasörü içindeyse sil
-        if 'path' in locals():
-            try:
-                abs_path = os.path.abspath(path)
-                user_dir = os.path.abspath(os.path.join(DOWNLOAD_LOCATION, str(user_id)))
-                if abs_path.startswith(user_dir + os.sep):
-                    try:
-                        os.remove(path)
-                    except:
-                        pass
-            except:
-                pass
+        os.remove(path)
     except:
         pass

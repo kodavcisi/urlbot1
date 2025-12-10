@@ -1,0 +1,19 @@
+{
+  "name": "URL-Yukleyici",
+  "description": "Tg Bot",
+  "addons": [
+    "scalingo-postgresql"
+  ],
+  "buildpacks": [{
+    "url": "https://github.com/trelicon/aria2-heroku"
+  }],
+  "website": "t.me/mmagneto",
+  "repository": "https://github.com/ali-mmagneto/URL-Yukleyici",
+  "logo": "https://telegra.ph/file/120b6577c124a1de0e074.jpg",
+  "env": {
+    "CONFIG_FILE_URL": {
+      "description": "BotFather'dan Al",
+      "generator": "secret"
+    },
+  }
+}

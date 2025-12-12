@@ -162,6 +162,22 @@ async def echo(bot, update):
             url,
             "--proxy", HTTP_PROXY
         ]
+    elif "setplay.shop" in url:
+        # önceki ayarları sıfırla
+        command_to_exec = [] 
+        # sadece setplay için özel ayarlar
+        command_to_exec = [
+            "yt-dlp",
+            "--no-warnings",
+           # "--youtube-skip-dash-manifest",
+            "--no-check-certificate",
+            "--merge-output-format", "mp4",
+            "--referer", "https://setplay.shop/player/index.php?data=4558dbb6f6f8bb2e16d03b85bde76e2c",
+            "--add-header", "Accept:  */*",
+            "-j",
+            url,
+            "--proxy", HTTP_PROXY
+            ]
     else:
         command_to_exec = [
             "yt-dlp",
@@ -241,35 +257,7 @@ async def echo(bot, update):
             if f"{ref}" in url:
                 command_to_exec.append("--referer")
                 command_to_exec.append("https://vidmoly.to/")
-    # setplay kontrolü döngü DIŞINA çıkarıldı
-    if "setplay" in url:
-        # önceki ayarları sıfırla
-        command_to_exec = []
-        
-        # sadece setplay için özel ayarlar
-        command_to_exec = [
-            "yt-dlp",
-            "--no-warnings",
-           # "--youtube-skip-dash-manifest",
-            "--no-check-certificate",
-            "--merge-output-format", "mp4",
-            "--referer", "https://setplay.shop/player/index.php?data=4558dbb6f6f8bb2e16d03b85bde76e2c",
-            "--add-header", "Accept:  */*",
-            "-j",
-            url,
-            "--proxy", HTTP_PROXY
-            ]
-    else:
-        command_to_exec = [
-            "yt-dlp",
-            "--no-warnings",
-            "--external-downloader","aria2c", 
-            "--no-check-certificate",
-            #"--referer", "https://setplay.shop/player/index.php?data=4558dbb6f6f8bb2e16d03b85bde76e2c",
-            #"--add-header", "Accept: */*",
-            "-j",
-            url
-            ]
+
 
     
     LOGGER.info(command_to_exec)

@@ -297,9 +297,9 @@ async def yt_dlp_call_back(bot, update):
     if "rapidrame" in yt_dlp_url:
         command_to_exec.append("--referer")
         command_to_exec.append("https://www.hdfilmcehennemi.fun/")
-    if "setplay" in yt_dlp_url:         
-        command_to_exec.append("--referer")       
-        command_to_exec.append("https://setplay.shop/player/index.php?data=4558dbb6f6f8bb2e16d03b85bde76e2c")
+    if "dramaizle1.xyz" in yt_dlp_url:
+        command_to_exec.append("--add-header")
+        command_to_exec.append("Accept: */*")
     if "rectv2024live" in yt_dlp_url:
         command_to_exec.append("--referer")
         command_to_exec.append("https://twitter.com/")
@@ -309,7 +309,6 @@ async def yt_dlp_call_back(bot, update):
     if ("hdmomplayer" in yt_dlp_url or
         "cehennemstream" in yt_dlp_url or
         "betaplayer" in yt_dlp_url or
-        "setplay.shop" in yt_dlp_url or
         "cizgipass5" in yt_dlp_url):
         command_to_exec.append("--add-header")
         command_to_exec.append("Accept: */*")
@@ -317,7 +316,7 @@ async def yt_dlp_call_back(bot, update):
         command_to_exec.append("--referer")
         command_to_exec.append("https://hdfilmcehennemi.mobi/")
         command_to_exec.append("--referer")
-        command_to_exec.append("https://closeload.filmmakinesi.to/")
+        command_to_exec.append("https://closeload.filmmakinesi.tv/")
     if yt_dlp_username is not None:
         command_to_exec.append("--username")
         command_to_exec.append(yt_dlp_username)
@@ -329,25 +328,23 @@ async def yt_dlp_call_back(bot, update):
             if f"{ref}" in yt_dlp_url:
                 command_to_exec.append("--referer")
                 command_to_exec.append("https://vidmoly.to/")
-            if "setplay" in yt_dlp_url:
-                # önceki ayarları sıfırla
-                command_to_exec = []
-            
-                # sadece setplay için özel ayarlar
-                command_to_exec = [
-                    "yt-dlp",
-                    "-c",
-                    "--max-filesize", str(TG_MAX_FILE_SIZE),
-                    "--embed-subs",
-                    "-N", "16",
-                    "-f", yt_dlp_format,
-                    "--hls-prefer-ffmpeg",
-                    "--merge-output-format", "mp4",
-                    "--referer", "https://setplay.shop/player/index.php?data=4558dbb6f6f8bb2e16d03b85bde76e2c",
-                    "--add-header", "Accept: */*",
-                    yt_dlp_url,
-                    "-o", download_directory
-                ]
+    if "setplay" in yt_dlp_url: 
+        command_to_exec = [] #Önceki Ayarları Sıfırla
+        command_to_exec = [
+            "yt-dlp",
+            "-c",
+            "--max-filesize", str(TG_MAX_FILE_SIZE),
+            "--embed-subs",
+            "-N", "16",
+            "-f", yt_dlp_format,
+            "--hls-prefer-ffmpeg",
+            "--merge-output-format", "mp4",
+            "--referer", "https://setplay.shop/player/index.php?data=4558dbb6f6f8bb2e16d03b85bde76e2c",
+            "--add-header", "Accept:  */*",
+            yt_dlp_url,
+            "-o", download_directory
+        ] #Setplay için özel ayar
+    
 #                except KeyError:
  #                   command_to_exec = [
   #                      "yt-dlp",
@@ -355,14 +352,14 @@ async def yt_dlp_call_back(bot, update):
     #                    "--max-filesize", str(TG_MAX_FILE_SIZE),
      #                   yt_dlp_url, "-o", download_directory
       #              ]
-                
-            if await db.get_aria2(user_id) is True:
-                command_to_exec.append("--external-downloader")
-                command_to_exec.append("aria2c")
-                command_to_exec.append("--external-downloader-args")
-                command_to_exec.append("-x 16 -s 16")
-                command_to_exec.append("--merge-output-format")
-                command_to_exec.append("mp4")
+        if await db.get_aria2(user_id) is True:
+            command_to_exec.append("--external-downloader")
+            command_to_exec.append("aria2c")
+            command_to_exec.append("--external-downloader-args")
+            command_to_exec.append("-x 16 -s 16")
+            command_to_exec.append("--merge-output-format")
+            command_to_exec.append("mp4")                
+
     LOGGER.info(command_to_exec)
     start = datetime.now()
     start1 = time.time() 

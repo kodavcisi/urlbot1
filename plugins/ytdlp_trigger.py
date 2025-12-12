@@ -265,8 +265,8 @@ async def echo(bot, update):
             "--no-warnings",
             "--external-downloader","aria2c", 
             "--no-check-certificate",
-            "--referer", "https://setplay.shop/player/index.php?data=4558dbb6f6f8bb2e16d03b85bde76e2c",
-            "--add-header", "Accept: */*",
+            #"--referer", "https://setplay.shop/player/index.php?data=4558dbb6f6f8bb2e16d03b85bde76e2c",
+            #"--add-header", "Accept: */*",
             "-j",
             url
             ]

@@ -283,11 +283,22 @@ async def pixeldrain_download(bot: Client, message: Message, url: str):
                 filled = int(bar_length * percent / 100)
                 bar = "━" * filled + "░" * (bar_length - filled)
                 
-                # Mesaj metni - Sadeleştirilmiş
+                # Mesaj metni - Geliştirilmiş (hız ve ETA ile)
                 text = "📥 **İndiriliyor...**\n\n"
                 text += f"⬇️ **İndirilen:** {progress_info.get('downloaded', 'N/A')} / {progress_info.get('total', 'N/A')}\n"
-                text += f"📊 **İlerleme:** {percent}%\n\n"
-                text += f"{bar}"
+                text += f"📊 **İlerleme:** {percent}%\n"
+                
+                # Hız bilgisi ekle
+                speed = progress_info.get('speed', 'N/A')
+                if speed != 'N/A':
+                    text += f"⚡ **Hız:** {speed}/s\n"
+                
+                # ETA bilgisi ekle
+                eta = progress_info.get('eta', 'N/A')
+                if eta != 'N/A':
+                    text += f"⏱ **Kalan Süre:** {eta}\n"
+                
+                text += f"\n{bar}"
                 
                 # Aynı mesajı tekrar gönderme
                 if text != last_progress_text:

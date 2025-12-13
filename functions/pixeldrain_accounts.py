@@ -174,13 +174,12 @@ class PixeldrainAccountManager:
         """
         Dosya boyutuna göre en uygun hesabı seçer
         
-        API'den gerçek kota verilerini çeker ve en uygun hesabı seçer.
+        API'den gerçek kota verilerini çeker ve ilk uygun hesabı seçer.
         
         Strateji:
         1. Tüm hesapların gerçek kotalarını API'den çek
-        2. Dosya boyutundan büyük kotası olan hesaplar arasından
-        3. Eğer dosya küçükse (<2GB), kalan kotası en az olan hesabı seç
-        4. Eğer dosya büyükse (>2GB), kalan kotası en çok olan hesabı seç
+        2. Dosya boyutuna yeterli kotası olan ilk hesabı seç
+        3. Hiç uygun hesap yoksa None döndür
         
         Args:
             file_size: İndirilecek dosya boyutu (bytes)
@@ -193,24 +192,16 @@ class PixeldrainAccountManager:
         for account in self.ACCOUNTS:
             await self.update_account_quota(account)
         
-        # Yeterli kotası olan hesapları bul
-        suitable_accounts = [acc for acc in self.ACCOUNTS if acc.has_quota(file_size)]
+        # Yeterli kotası olan ilk hesabı bul
+        for account in self.ACCOUNTS:
+            if account.has_quota(file_size):
+                LOGGER.info(f"Uygun hesap bulundu: {account.username} "
+                           f"(Kalan: {account.remaining_quota / (1024*1024*1024):.2f}GB)")
+                return account
         
-        if not suitable_accounts:
-            LOGGER.error(f"Hiçbir hesapta {file_size / (1024*1024*1024):.2f}GB için yeterli kota yok!")
-            return None
-        
-        # Dosya boyutuna göre strateji
-        if file_size < 2 * 1024 * 1024 * 1024:  # 2GB'dan küçük
-            # Küçük dosyalar için: en az kotası olan hesabı kullan (kota tasarrufu)
-            selected = min(suitable_accounts, key=lambda acc: acc.remaining_quota)
-            LOGGER.info(f"Küçük dosya ({file_size / (1024*1024):.1f}MB): En az kotalı hesap seçildi: {selected.username}")
-        else:  # 2GB ve üstü
-            # Büyük dosyalar için: en çok kotası olan hesabı kullan
-            selected = max(suitable_accounts, key=lambda acc: acc.remaining_quota)
-            LOGGER.info(f"Büyük dosya ({file_size / (1024*1024*1024):.2f}GB): En çok kotalı hesap seçildi: {selected.username}")
-        
-        return selected
+        # Hiç uygun hesap bulunamadı
+        LOGGER.error(f"Hiçbir hesapta {file_size / (1024*1024*1024):.2f}GB için yeterli kota yok!")
+        return None
     
     def get_account_by_api_key(self, api_key: str) -> Optional[PixeldrainAccount]:
         """API key'e göre hesap bulur"""

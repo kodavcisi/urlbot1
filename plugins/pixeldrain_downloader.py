@@ -140,15 +140,27 @@ async def download_with_aria2c(
     Returns:
         (başarılı mı, hata mesajı)
     """
+    # User-Agent rotasyonu için basit bir liste
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ]
+    
     for attempt in range(max_retries):
         try:
             LOGGER.info(f"Deneme {attempt + 1}/{max_retries}: İndirme başlıyor")
+            
+            # Her denemede farklı user-agent kullan
+            import random
+            user_agent = random.choice(user_agents)
             
             # aria2c komutu oluştur
             command = build_aria2c_command(
                 url=url,
                 output_path=output_path,
                 connections=PIXELDRAIN_ARIA2C_CONNECTIONS,
+                user_agent=user_agent,
                 referer="https://pixeldrain.com/"
             )
             

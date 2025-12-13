@@ -108,7 +108,7 @@ class PixeldrainAccountManager:
         """
         Pixeldrain API'sinden hesabın kalan kotasını öğrenir
         
-        API endpoint: https://pixeldrain.com/api/user/limits
+        API endpoint: https://pixeldrain.com/api/user
         Expected response:
         {
           "bandwidth_remaining": 5368709120,  # bytes cinsinden kalan kota

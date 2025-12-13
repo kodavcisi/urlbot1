@@ -70,7 +70,7 @@ Bot otomatik olarak:
 
 Her indirme öncesi sistem:
 
-1. **API'den gerçek kota sorgular**: `https://pixeldrain.com/api/user/limits` endpoint'i kullanılır
+1. **API'den gerçek kota sorgular**: `https://pixeldrain.com/api/user` endpoint'i kullanılır
 2. **Günlük limit**: Her hesap için 6GB (6,442,450,944 bytes)
 3. **Otomatik hesap seçimi**: Yeterli kotası olan hesaplar arasından en uygun olanı seçilir
 4. **Kota güncelleme**: İndirme tamamlandığında kullanılan miktar hesaba kaydedilir
@@ -210,8 +210,8 @@ Modülü geliştirmek için:
 ### Pixeldrain API Endpoint
 
 ```
-GET https://pixeldrain.com/api/user/limits
-Authorization: Basic <base64_encoded_api_key:>
+GET https://pixeldrain.com/api/user
+Authorization: Basic <base64_encoded_api_key>
 ```
 
 ### Örnek API Yanıtı
@@ -233,7 +233,6 @@ Authorization: Basic <base64_encoded_api_key:>
 API key, base64 ile encode edilip Basic auth formatında gönderilir:
 
 ```python
-auth_string = f"{api_key}:"
-auth_b64 = base64.b64encode(auth_string.encode()).decode()
+auth_b64 = base64.b64encode(api_key.encode()).decode()
 headers = {"Authorization": f"Basic {auth_b64}"}
 ```

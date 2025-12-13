@@ -108,7 +108,7 @@ class PixeldrainAccountManager:
         """
         Pixeldrain API'sinden hesabın kalan kotasını öğrenir
         
-        API endpoint: https://pixeldrain.com/api/user/limits
+        API endpoint: https://pixeldrain.com/api/user
         Expected response:
         {
           "bandwidth_remaining": 5368709120,  # bytes cinsinden kalan kota
@@ -126,11 +126,11 @@ class PixeldrainAccountManager:
             import aiohttp
             import base64
             
-            url = "https://pixeldrain.com/api/user/limits"
+            url = "https://pixeldrain.com/api/user"
             
             # API key should be base64 encoded for Basic auth
-            # Format: Basic base64(api_key:)
-            auth_b64 = base64.b64encode(f"{account.api_key}:".encode()).decode()
+            # Format: Basic base64(api_key) without colon
+            auth_b64 = base64.b64encode(account.api_key.encode()).decode()
             
             headers = {
                 "Authorization": f"Basic {auth_b64}",
@@ -156,8 +156,15 @@ class PixeldrainAccountManager:
                         else:
                             LOGGER.warning(f"Hesap {account.username}: API'de bandwidth bilgisi bulunamadı")
                             return None
+                    elif response.status == 401:
+                        LOGGER.warning(f"Hesap {account.username} kota kontrolü başarısız: HTTP 401 - Authentication failed (invalid API key)")
+                        return None
+                    elif response.status == 403:
+                        LOGGER.warning(f"Hesap {account.username} kota kontrolü başarısız: HTTP 403 - Forbidden (insufficient permissions)")
+                        return None
                     else:
-                        LOGGER.warning(f"Hesap {account.username} kota kontrolü başarısız: HTTP {response.status}")
+                        response_text = await response.text()
+                        LOGGER.warning(f"Hesap {account.username} kota kontrolü başarısız: HTTP {response.status}, Response: {response_text[:200]}")
                         return None
         except Exception as e:
             LOGGER.error(f"Hesap {account.username} kota kontrol hatası: {e}")

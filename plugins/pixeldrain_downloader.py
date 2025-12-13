@@ -3,13 +3,11 @@ import re
 import time
 import asyncio
 import logging
-import random
 from typing import Optional, Tuple
 from pyrogram import Client
 from pyrogram.types import Message
 from config import (
     DOWNLOAD_LOCATION, 
-    PIXELDRAIN_ARIA2C_CONNECTIONS,
     TG_MAX_FILE_SIZE,
     LOG_CHANNEL,
     PRE_LOG,
@@ -141,27 +139,14 @@ async def download_with_aria2c(
     Returns:
         (başarılı mı, hata mesajı)
     """
-    # User-Agent rotasyonu için basit bir liste
-    user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    ]
-    
     for attempt in range(max_retries):
         try:
             LOGGER.info(f"Deneme {attempt + 1}/{max_retries}: İndirme başlıyor")
             
-            # Her denemede farklı user-agent kullan
-            user_agent = random.choice(user_agents)
-            
             # aria2c komutu oluştur
             command = build_aria2c_command(
                 url=url,
-                output_path=output_path,
-                connections=PIXELDRAIN_ARIA2C_CONNECTIONS,
-                user_agent=user_agent,
-                referer="https://pixeldrain.com/"
+                output_path=output_path
             )
             
             # aria2c'yi çalıştır
@@ -298,13 +283,10 @@ async def pixeldrain_download(bot: Client, message: Message, url: str):
                 filled = int(bar_length * percent / 100)
                 bar = "━" * filled + "░" * (bar_length - filled)
                 
-                # Mesaj metni
+                # Mesaj metni - Sadeleştirilmiş
                 text = "📥 **İndiriliyor...**\n\n"
-                text += f"📊 **Boyut:** {progress_info.get('total', 'N/A')}\n"
-                text += f"⬇️ **İndirilen:** {progress_info.get('downloaded', 'N/A')} ({percent}%)\n"
-                text += f"⚡ **Hız:** {progress_info.get('speed', 'N/A')}/s\n"
-                text += f"⏱ **Kalan Süre:** {progress_info.get('eta', 'N/A')}\n"
-                text += f"🔗 **Bağlantı:** {progress_info.get('connections', 'N/A')}\n\n"
+                text += f"⬇️ **İndirilen:** {progress_info.get('downloaded', 'N/A')} / {progress_info.get('total', 'N/A')}\n"
+                text += f"📊 **İlerleme:** {percent}%\n\n"
                 text += f"{bar} {percent}%"
                 
                 # Aynı mesajı tekrar gönderme
@@ -318,8 +300,7 @@ async def pixeldrain_download(bot: Client, message: Message, url: str):
         
         # İndirmeyi başlat
         account_info = f" (Hesap: {selected_account.username})" if selected_account else ""
-        await status_msg.edit_text(f"📥 **aria2c ile indirme başlıyor...**{account_info}\n\n"
-                                   f"🔗 Bağlantı: {PIXELDRAIN_ARIA2C_CONNECTIONS}")
+        await status_msg.edit_text(f"📥 **aria2c ile indirme başlıyor...**{account_info}")
         
         success, error = await download_with_aria2c(
             url=download_url,

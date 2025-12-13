@@ -3,6 +3,7 @@ import re
 import time
 import asyncio
 import logging
+import random
 from typing import Optional, Tuple
 from pyrogram import Client
 from pyrogram.types import Message
@@ -129,7 +130,7 @@ async def download_with_aria2c(
     max_retries: int = 3
 ) -> Tuple[bool, str]:
     """
-    aria2c ile dosya indirir
+    aria2c ile dosya indirir (direkt bağlantı, proxy yok)
     
     Args:
         url: İndirilecek dosya URL'si
@@ -152,7 +153,6 @@ async def download_with_aria2c(
             LOGGER.info(f"Deneme {attempt + 1}/{max_retries}: İndirme başlıyor")
             
             # Her denemede farklı user-agent kullan
-            import random
             user_agent = random.choice(user_agents)
             
             # aria2c komutu oluştur

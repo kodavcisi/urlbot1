@@ -130,9 +130,7 @@ class PixeldrainAccountManager:
             
             # API key should be base64 encoded for Basic auth
             # Format: Basic base64(api_key:)
-            auth_string = f"{account.api_key}:"
-            auth_bytes = auth_string.encode('utf-8')
-            auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
+            auth_b64 = base64.b64encode(f"{account.api_key}:".encode()).decode()
             
             headers = {
                 "Authorization": f"Basic {auth_b64}",

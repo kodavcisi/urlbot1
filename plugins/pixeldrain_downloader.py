@@ -287,7 +287,7 @@ async def pixeldrain_download(bot: Client, message: Message, url: str):
                 text = "📥 **İndiriliyor...**\n\n"
                 text += f"⬇️ **İndirilen:** {progress_info.get('downloaded', 'N/A')} / {progress_info.get('total', 'N/A')}\n"
                 text += f"📊 **İlerleme:** {percent}%\n\n"
-                text += f"{bar} {percent}%"
+                text += f"{bar}"
                 
                 # Aynı mesajı tekrar gönderme
                 if text != last_progress_text:

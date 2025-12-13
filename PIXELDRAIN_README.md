@@ -6,7 +6,8 @@ Bu modül, Pixeldrain linklerini özel bir sistemle indirir:
 
 - ✅ **Otomatik Tespit**: Pixeldrain URL'leri otomatik olarak tespit edilir
 - ✅ **aria2c ile Hızlı İndirme**: 16 paralel bağlantı ile maksimum hız
-- ✅ **Proxy Desteği**: IP rotasyonu ile limit bypass
+- ✅ **API Kota Kontrolü**: Her indirme öncesi gerçek API kota kontrolü
+- ✅ **Otomatik Hesap Geçişi**: Kota dolduğunda otomatik hesap değişimi
 - ✅ **Gerçek Zamanlı Progress**: Kullanıcıya detaylı ilerleme bilgisi
 - ✅ **Otomatik Yeniden Deneme**: Başarısız indirmelerde 3 kez deneme
 
@@ -18,9 +19,6 @@ Bu modül, Pixeldrain linklerini özel bir sistemle indirir:
 
 ```bash
 # Pixeldrain ayarları
-PIXELDRAIN_USE_PROXY=True                    # Proxy kullanımı (True/False)
-PIXELDRAIN_AUTO_PROXY=True                   # Otomatik free proxy çekme (True/False)
-PIXELDRAIN_PROXY_LIST=http://proxy1:8080,http://proxy2:8080  # Manuel proxy listesi (virgülle ayrılmış)
 PIXELDRAIN_ARIA2C_CONNECTIONS=16             # Paralel bağlantı sayısı (varsayılan: 16)
 ```
 
@@ -28,9 +26,6 @@ PIXELDRAIN_ARIA2C_CONNECTIONS=16             # Paralel bağlantı sayısı (vars
 
 Ortam değişkenleri tanımlanmazsa, şu varsayılanlar kullanılır:
 
-- `PIXELDRAIN_USE_PROXY`: True
-- `PIXELDRAIN_AUTO_PROXY`: True
-- `PIXELDRAIN_PROXY_LIST`: [] (boş liste)
 - `PIXELDRAIN_ARIA2C_CONNECTIONS`: 16
 
 ## Kullanım
@@ -44,11 +39,14 @@ https://pixeldrain.com/u/XXXXXXXX
 Bot otomatik olarak:
 
 1. Pixeldrain linkini tespit eder
-2. Proxy sistemi kurar (aktifse)
-3. aria2c ile dosyayı indirir
-4. İndirme ilerlemesini gösterir
-5. Dosyayı Telegram'a yükler
-6. Geçici dosyayı temizler
+2. Dosya boyutunu kontrol eder
+3. API'den tüm hesapların gerçek kota durumunu sorgular
+4. En uygun hesabı seçer (yeterli kotası olmalı)
+5. aria2c ile dosyayı indirir
+6. İndirme ilerlemesini gösterir
+7. Dosyayı Telegram'a yükler
+8. İndirilen miktarı hesap kotasından düşer
+9. Geçici dosyayı temizler
 
 ## Progress Görüntüsü
 
@@ -66,38 +64,36 @@ Bot otomatik olarak:
 ━━━━━━░░░░░░░░░░░░░░░░░░ 24%
 ```
 
-## Proxy Sistemi
+## API Kota Kontrolü
 
-### Manuel Proxy Listesi
+### Gerçek Zamanlı API Kontrolü
 
-```bash
-PIXELDRAIN_PROXY_LIST=http://proxy1.example.com:8080,http://proxy2.example.com:3128
-```
+Her indirme öncesi sistem:
 
-### Otomatik Free Proxy
+1. **API'den gerçek kota sorgular**: `https://pixeldrain.com/api/user/limits` endpoint'i kullanılır
+2. **Günlük limit**: Her hesap için 6GB (6,442,450,944 bytes)
+3. **Otomatik hesap seçimi**: Yeterli kotası olan hesaplar arasından en uygun olanı seçilir
+4. **Kota güncelleme**: İndirme tamamlandığında kullanılan miktar hesaba kaydedilir
 
-`PIXELDRAIN_AUTO_PROXY=True` olduğunda, sistem otomatik olarak free proxy'leri çeker ve kullanır.
+### Hesap Seçim Stratejisi
 
-### Proxy Rotasyonu
+Sistem akıllı hesap seçimi yapar:
 
-- Her indirmede farklı proxy kullanılır
-- Başarısız proxy'ler işaretlenir ve atlanır
-- Limit hatası alındığında otomatik yeni proxy denenimi yapılır
-- Maksimum 3 deneme yapılır
+1. **Küçük dosyalar (<2GB)**: En az kotası olan uygun hesabı seçer (kota tasarrufu)
+2. **Büyük dosyalar (≥2GB)**: En çok kotası olan uygun hesabı seçer (büyük indirmeyi garantiler)
+3. **Kota kontrolü**: Tüm hesapların gerçek kotaları API'den kontrol edilir
 
-## Limit Bypass Stratejileri
+### Otomatik Hesap Geçişi
 
-Modül şu stratejileri kullanır:
-
-1. **IP Rotasyonu**: Her indirmede farklı proxy
-2. **User-Agent Rotasyonu**: Her istekte farklı browser user-agent
-3. **Referer Header**: Pixeldrain.com referrer eklenir
-4. **Otomatik Retry**: Başarısız denemelerde otomatik yeniden deneme
+- Seçilen hesabın kotası yetersizse, bir sonraki uygun hesaba otomatik geçiş yapılır
+- Tüm hesapların kotası doluysa kullanıcıya bilgi verilir
+- Her hesabın durumu kullanıcıya gösterilir
 
 ## Hata Yönetimi
 
-- **Proxy Hatası**: Otomatik olarak başka proxy denenir
-- **aria2c Crash**: Hata mesajı gösterilir
+- **Kota Yetersiz**: Tüm hesapların kotası doluysa kullanıcıya bilgi verilir
+- **API Hatası**: API'den kota alınamazsa local bilgi kullanılır
+- **aria2c Crash**: Hata mesajı gösterilir ve maksimum 3 kez yeniden denenir
 - **Dosya Boyutu Aşımı**: Telegram limiti aşılırsa uyarı verilir (4.2GB)
 - **Timeout**: PROCESS_MAX_TIMEOUT değeri kullanılır
 
@@ -115,10 +111,13 @@ Modül şu stratejileri kullanır:
    - `run_aria2c()`: Subprocess yönetimi
    - `parse_progress()`: Progress parsing
 
-3. **`functions/proxy_manager.py`**: Proxy yönetimi
-   - `ProxyManager`: Ana sınıf
-   - `get_free_proxies()`: Free proxy çekme
-   - `get_next_proxy()`: Proxy rotasyonu
+3. **`functions/pixeldrain_accounts.py`**: Hesap yönetimi
+   - `PixeldrainAccount`: Hesap bilgisi dataclass
+   - `PixeldrainAccountManager`: Hesap yönetici sınıfı
+   - `get_account_quota()`: API'den gerçek kota sorgulama
+   - `update_account_quota()`: Hesap kotasını güncelleme
+   - `select_best_account()`: En uygun hesabı seçme
+   - `mark_quota_used()`: Kullanılan kotayı kaydetme
 
 ### Entegrasyon
 
@@ -165,17 +164,33 @@ Bot şu adımları takip eder:
 
 ## Sorun Giderme
 
-### Proxy çalışmıyor
+### Tüm hesapların kotası dolmuş
 
-```bash
-PIXELDRAIN_USE_PROXY=False  # Proxy'siz dene
+Sistem size tüm hesapların durumunu gösterecektir:
+
 ```
+❌ Tüm hesapların günlük kotası dolmuş!
+
+📊 Pixeldrain Hesap Durumu:
+1. noelledark
+   Kalan: 0.00GB / 6GB (0%)
+2. johnsnow33
+   Kalan: 0.50GB / 6GB (8%)
+...
+```
+
+Çözüm: Kotalar günlük sıfırlanır, ertesi gün tekrar deneyin.
+
+### API bağlantısı başarısız
+
+Eğer API'ye bağlanılamazsa, sistem local kota bilgisini kullanmaya devam eder ancak tam doğru olmayabilir.
 
 ### İndirme başarısız
 
 - Dosya boyutunu kontrol edin (>4.2GB Telegram limiti)
 - aria2c kurulu olduğundan emin olun
 - Log dosyasını kontrol edin
+- API key'lerin geçerli olduğunu kontrol edin
 
 ### Progress güncellenmesi yok
 
@@ -187,5 +202,38 @@ PIXELDRAIN_USE_PROXY=False  # Proxy'siz dene
 Modülü geliştirmek için:
 
 1. `functions/aria2c_helper.py`: aria2c komut seçeneklerini özelleştir
-2. `functions/proxy_manager.py`: Farklı proxy kaynakları ekle
+2. `functions/pixeldrain_accounts.py`: Yeni hesap ekle veya kota stratejisini değiştir
 3. `plugins/pixeldrain_downloader.py`: Progress gösterimini özelleştir
+
+## API Detayları
+
+### Pixeldrain API Endpoint
+
+```
+GET https://pixeldrain.com/api/user/limits
+Authorization: Basic <base64_encoded_api_key:>
+```
+
+### Örnek API Yanıtı
+
+```json
+{
+  "bandwidth_remaining": 5368709120,
+  "bandwidth_limit": 6442450944,
+  "subscription": "free",
+  ...
+}
+```
+
+- `bandwidth_remaining`: Kalan kota (bytes)
+- `bandwidth_limit`: Toplam günlük limit (6GB = 6,442,450,944 bytes)
+
+### Kimlik Doğrulama
+
+API key, base64 ile encode edilip Basic auth formatında gönderilir:
+
+```python
+auth_string = f"{api_key}:"
+auth_b64 = base64.b64encode(auth_string.encode()).decode()
+headers = {"Authorization": f"Basic {auth_b64}"}
+```

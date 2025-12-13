@@ -108,6 +108,14 @@ class PixeldrainAccountManager:
         """
         Pixeldrain API'sinden hesabın kalan kotasını öğrenir
         
+        API endpoint: https://pixeldrain.com/api/user/limits
+        Expected response:
+        {
+          "bandwidth_remaining": 5368709120,  # bytes cinsinden kalan kota
+          "bandwidth_limit": 6442450944,       # 6GB limit
+          ...
+        }
+        
         Args:
             account: Kontrol edilecek hesap
             
@@ -116,10 +124,18 @@ class PixeldrainAccountManager:
         """
         try:
             import aiohttp
+            import base64
             
             url = "https://pixeldrain.com/api/user/limits"
+            
+            # API key should be base64 encoded for Basic auth
+            # Format: Basic base64(api_key:)
+            auth_string = f"{account.api_key}:"
+            auth_bytes = auth_string.encode('utf-8')
+            auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
+            
             headers = {
-                "Authorization": f"Basic {account.api_key}",
+                "Authorization": f"Basic {auth_b64}",
                 "User-Agent": "Mozilla/5.0"
             }
             
@@ -127,12 +143,21 @@ class PixeldrainAccountManager:
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
                     if response.status == 200:
                         data = await response.json()
-                        # API'den dönen kota bilgisi
-                        # bandwidth_limit - bandwidth_used = kalan
-                        if 'bandwidth_limit' in data and 'bandwidth_used' in data:
-                            remaining = data['bandwidth_limit'] - data['bandwidth_used']
-                            LOGGER.info(f"Hesap {account.username}: {remaining / (1024*1024*1024):.2f}GB kalan")
+                        LOGGER.info(f"API response for {account.username}: {data}")
+                        
+                        # Check for bandwidth_remaining field (preferred)
+                        if 'bandwidth_remaining' in data:
+                            remaining = data['bandwidth_remaining']
+                            LOGGER.info(f"Hesap {account.username}: {remaining / (1024*1024*1024):.2f}GB kalan (API)")
                             return max(0, remaining)
+                        # Fallback: calculate from limit and used
+                        elif 'bandwidth_limit' in data and 'bandwidth_used' in data:
+                            remaining = data['bandwidth_limit'] - data['bandwidth_used']
+                            LOGGER.info(f"Hesap {account.username}: {remaining / (1024*1024*1024):.2f}GB kalan (calculated)")
+                            return max(0, remaining)
+                        else:
+                            LOGGER.warning(f"Hesap {account.username}: API'de bandwidth bilgisi bulunamadı")
+                            return None
                     else:
                         LOGGER.warning(f"Hesap {account.username} kota kontrolü başarısız: HTTP {response.status}")
                         return None
@@ -147,14 +172,17 @@ class PixeldrainAccountManager:
             account.remaining_quota = quota
             account.last_checked = datetime.now()
     
-    def select_best_account(self, file_size: int) -> Optional[PixeldrainAccount]:
+    async def select_best_account(self, file_size: int) -> Optional[PixeldrainAccount]:
         """
         Dosya boyutuna göre en uygun hesabı seçer
         
+        API'den gerçek kota verilerini çeker ve en uygun hesabı seçer.
+        
         Strateji:
-        1. Dosya boyutundan büyük kotası olan hesaplar arasından
-        2. Eğer dosya küçükse (<2GB), kalan kotası en az olan hesabı seç
-        3. Eğer dosya büyükse (>2GB), kalan kotası en çok olan hesabı seç
+        1. Tüm hesapların gerçek kotalarını API'den çek
+        2. Dosya boyutundan büyük kotası olan hesaplar arasından
+        3. Eğer dosya küçükse (<2GB), kalan kotası en az olan hesabı seç
+        4. Eğer dosya büyükse (>2GB), kalan kotası en çok olan hesabı seç
         
         Args:
             file_size: İndirilecek dosya boyutu (bytes)
@@ -162,6 +190,11 @@ class PixeldrainAccountManager:
         Returns:
             Seçilen hesap veya None
         """
+        # Önce tüm hesapların gerçek kotalarını API'den güncelle
+        LOGGER.info("Tüm hesapların gerçek kotaları API'den kontrol ediliyor...")
+        for account in self.ACCOUNTS:
+            await self.update_account_quota(account)
+        
         # Yeterli kotası olan hesapları bul
         suitable_accounts = [acc for acc in self.ACCOUNTS if acc.has_quota(file_size)]
         

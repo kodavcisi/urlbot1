@@ -6,18 +6,13 @@ from typing import Optional, Dict, Tuple
 LOGGER = logging.getLogger(__name__)
 
 
-def build_aria2c_command(url: str, output_path: str, connections: int = 16, proxy: Optional[str] = None, 
-                         user_agent: Optional[str] = None, referer: Optional[str] = None) -> list:
+def build_aria2c_command(url: str, output_path: str) -> list:
     """
     aria2c komutunu oluşturur
     
     Args:
         url: İndirilecek dosya URL'si
         output_path: Çıktı dosya yolu
-        connections: Bağlantı sayısı (varsayılan: 16)
-        proxy: Proxy adresi (opsiyonel)
-        user_agent: User-Agent header (opsiyonel)
-        referer: Referer header (opsiyonel)
     
     Returns:
         aria2c komut listesi
@@ -29,25 +24,10 @@ def build_aria2c_command(url: str, output_path: str, connections: int = 16, prox
     
     command = [
         "aria2c",
-        "-x", str(connections),
-        "-s", str(connections),
-        "-k", "1M",
-        "--file-allocation=none",
-        "--console-log-level=error",
-        "--summary-interval=0",
         "-d", output_dir,  # dizin
         "-o", output_file,  # dosya adı
         url
     ]
-    
-    if proxy:
-        command.extend(["--all-proxy", proxy])
-    
-    if user_agent:
-        command.extend(["--user-agent", user_agent])
-    
-    if referer:
-        command.extend(["--referer", referer])
     
     return command
 

@@ -145,7 +145,4 @@ PASS = password.upper() if password else None
 SEND_LOGS_WHEN_DYING = str(environ.get("SEND_LOGS_WHEN_DYING", "True")).lower() == 'true'
 
 # Pixeldrain Settings
-PIXELDRAIN_USE_PROXY = str(environ.get("PIXELDRAIN_USE_PROXY", "True")).lower() == 'true'
-PIXELDRAIN_PROXY_LIST = environ.get("PIXELDRAIN_PROXY_LIST", "").split(",") if environ.get("PIXELDRAIN_PROXY_LIST", "") else []
-PIXELDRAIN_AUTO_PROXY = str(environ.get("PIXELDRAIN_AUTO_PROXY", "True")).lower() == 'true'
 PIXELDRAIN_ARIA2C_CONNECTIONS = int(environ.get("PIXELDRAIN_ARIA2C_CONNECTIONS", "16"))

@@ -102,6 +102,15 @@ async def echo(bot, update):
         await pixeldrain_download(bot, update, message_text)
         return
 
+    # Dizilla.to URL kontrolü ve özel modüle yönlendirme
+    if message_text and 'dizilla.to' in message_text:
+        LOGGER.info("Dizilla URL tespit edildi, dizilla modülü çağrılıyor")
+        from plugins.dizilla import dizilla_trigger
+        raw_url = message_text.split('|')[0].strip()
+        custom_name = message_text.split('|')[1].strip() if '|' in message_text else None
+        await dizilla_trigger(bot, update, raw_url, custom_name)
+        return
+
     message_id = update.id
     chat_id = update.chat.id
     await update.reply_chat_action(ChatAction.TYPING)

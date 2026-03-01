@@ -25,6 +25,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from functions.utils import URL_REGEX
 from database.database import db
 from plugins.pixeldrain_downloader import is_pixeldrain_url, pixeldrain_download
+from plugins.dizilla_extractor import is_dizilla_url, handle_dizilla
 
 progress_pattern = re.compile(
     r'(frame|fps|size|time|bitrate|speed)\s*\=\s*(\S+)'
@@ -100,6 +101,12 @@ async def echo(bot, update):
     if message_text and is_pixeldrain_url(message_text):
         LOGGER.info("Pixeldrain URL tespit edildi, özel modül çağrılıyor")
         await pixeldrain_download(bot, update, message_text)
+        return
+
+    # Dizilla URL kontrolü ve özel modüle yönlendirme
+    if message_text and is_dizilla_url(message_text):
+        LOGGER.info("Dizilla URL tespit edildi, dizilla_extractor çağrılıyor")
+        await handle_dizilla(bot, update, message_text.strip())
         return
 
     message_id = update.id

@@ -21,3 +21,4 @@ streamlit
 aiohttp-socks
 PySocks
 fake-useragent
+playwright

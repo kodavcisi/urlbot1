@@ -130,6 +130,9 @@ async def cb_handlers(c: Client, cb: "types.CallbackQuery"):
         await Filters(cb)
     elif cb.data == "close":
         await message.delete(True)
+    elif cb.data.startswith("dizilla|"):
+        from plugins.dizilla import dizilla_callback
+        await dizilla_callback(c, cb)
     elif "|" in cb.data:
         await yt_dlp_call_back(c, cb)
     elif "=" in cb.data:

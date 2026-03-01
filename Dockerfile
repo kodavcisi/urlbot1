@@ -12,7 +12,8 @@ WORKDIR /root/tyler/urlbot
 # Gereksinim dosyasını kopyala ve bağımlılıkları yükle
 COPY requirements.txt /root/tyler/urlbot
 RUN pip install --no-cache-dir -U pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    playwright install chromium --with-deps
 
 # Uygulama dosyalarını kopyala
 COPY . /root/tyler/urlbot 

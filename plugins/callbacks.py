@@ -4,6 +4,7 @@ from translation import Translation
 from plugins.dl_button import ddl_call_back
 from functions.settings import Settings, Login, Filters
 from plugins.ytdlp_button import yt_dlp_call_back
+from plugins.dizilla_downloader import dizilla_quality_selected, dizilla_audio_selected
 from pyrogram.enums import ParseMode
 
 import logging
@@ -130,6 +131,10 @@ async def cb_handlers(c: Client, cb: "types.CallbackQuery"):
         await Filters(cb)
     elif cb.data == "close":
         await message.delete(True)
+    elif cb.data.startswith("dizilla|quality|"):
+        await dizilla_quality_selected(c, cb)
+    elif cb.data.startswith("dizilla|audio|"):
+        await dizilla_audio_selected(c, cb)
     elif "|" in cb.data:
         await yt_dlp_call_back(c, cb)
     elif "=" in cb.data:
